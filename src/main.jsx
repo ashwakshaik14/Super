@@ -11,8 +11,8 @@ import "./index.css";
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <DashboardPage />, // Focus here
-    errorElement: <ErrorPage />, // Focus here
+    element: <DashboardPage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: "/login",
@@ -20,7 +20,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/categories",
-    element: <Categories />, // Focus here 
+    element: <Categories />,
   },
   {
     path: "/entertainment",

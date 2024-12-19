@@ -13,7 +13,7 @@ import styles from "./dashboard.module.css";
 import { NYTAPIKEY, OPENWEATHERMAP_KEY } from "../secrets";
 
 const DashboardPage = () => {
-  // user variables
+  // User-related states
   const [user, setUser] = useState({
     name: "Not logged in",
     username: "guest",
@@ -23,16 +23,16 @@ const DashboardPage = () => {
     categories: ["Horror", "Thriller", "Action"],
   });
 
-  // weather variables
+  // Weather-related states
   const [weather, setWeather] = useState(null);
   const [weatherDate, setWeatherDate] = useState(null);
   const [weatherLoading, setWeatherLoading] = useState(true);
 
-  // news variables
-  const [news, setNews] = useState({});
+  // News-related states
+  const [news, setNews] = useState(null);
   const [newsLoading, setNewsLoading] = useState(true);
 
-  // timer variables
+  // Timer-related states
   const [timerTime, setTimerTime] = useState({
     hours: 0,
     minutes: 1,
@@ -40,13 +40,12 @@ const DashboardPage = () => {
   });
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  
+
   const totalTime = useRef(0);
   const timerRef = useRef(null);
-
-  /// navigation functions
   const navigate = useNavigate();
 
+  // Sign-out functionality
   const signOut = () => {
     localStorage.removeItem("user");
     navigate("/login");
@@ -56,50 +55,52 @@ const DashboardPage = () => {
     navigate("/entertainment");
   };
 
-  /// API Requests
-
-  // Fetch news data from newsapi.org
+  // Fetch news data from API
   const fetchNewsData = async () => {
     try {
       const response = await fetch(
         `https://api.nytimes.com/svc/topstories/v2/world.json?api-key=${NYTAPIKEY}`
       );
+      if (!response.ok) throw new Error(`News API error: ${response.status}`);
       const data = await response.json();
-      console.log(NYTAPIKEY);
-      setNews(data.results[0]);
+
+      if (data.results && data.results.length > 0) {
+        setNews(data.results[0]); // Use the first news item
+      } else {
+        console.error("No news data available");
+        setNews(null);
+      }
     } catch (error) {
       console.error("Error fetching news data:", error);
+      setNews(null);
     } finally {
       setNewsLoading(false);
     }
   };
 
-  // Helper function to get geo location of user
-  const getCurrentPosition = () => {
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject);
-    });
-  };
-
-  // Fetch weather data from openweathermap.org
+  // Fetch weather data from API
   const fetchWeatherData = async () => {
     try {
-      const position = await getCurrentPosition();
+      const position = await new Promise((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject)
+      );
       const { latitude, longitude } = position.coords;
       const response = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&units=metric&appid=${OPENWEATHERMAP_KEY}`
       );
-
+      if (!response.ok) throw new Error(`Weather API error: ${response.status}`);
       const data = await response.json();
       setWeather(data);
       setWeatherDate(new Date(data.dt * 1000));
     } catch (error) {
       console.error("Error fetching weather data:", error);
+      setWeather(null);
     } finally {
       setWeatherLoading(false);
     }
   };
-//  for data fetching from the API
+
+  // Fetch data on component mount
   useEffect(() => {
     fetchWeatherData();
     fetchNewsData();
@@ -107,12 +108,13 @@ const DashboardPage = () => {
     return () => clearInterval(timer);
   }, []);
 
+  // Update total time when timer state changes
   useEffect(() => {
     totalTime.current =
       timerTime.hours * 3600 + timerTime.minutes * 60 + timerTime.seconds;
   }, [timerTime]);
 
-  // For Timer component
+  // Timer countdown logic
   useEffect(() => {
     if (isRunning) {
       timerRef.current = setInterval(() => {
@@ -131,6 +133,7 @@ const DashboardPage = () => {
     return () => clearInterval(timerRef.current);
   }, [isRunning]);
 
+  // Check user login status
   useEffect(() => {
     const user = localStorage.getItem("user");
     if (user !== null) {
@@ -138,7 +141,7 @@ const DashboardPage = () => {
     } else {
       navigate("/login");
     }
-  }, []);
+  }, [navigate]);
 
   return (
     <div className={styles.container}>
@@ -162,7 +165,7 @@ const DashboardPage = () => {
         ) : news ? (
           <NewsCard news={news} />
         ) : (
-          <p>Error fetching news data</p>
+          <p>No news available</p>
         )}
 
         <TimerCard
